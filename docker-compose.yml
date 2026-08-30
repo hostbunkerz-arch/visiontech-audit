@@ -31,13 +31,13 @@ services:
       - backend
     restart: unless-stopped
 
-  # Агент сбора логов Vector
   vector:
-    image: timberio/vector:0.34.X-alpine
+    image: timberio/vector:0.34.0-alpine
     container_name: visiontech-vector-agent
     volumes:
-      - ./vector.toml:/etc/vector/vector.toml:ro
-      - ./mock_logs:/var/log/mock_logs:ro # Читаем текстовую папку с логами
+      - ./vector.yaml:/etc/vector/vector.yaml:ro # Пробрасываем строго YAML
+      - ./mock_logs:/var/log/mock_logs:ro
+    command: ["--config", "/etc/vector/vector.yaml"] # Запускаем строго YAML
     networks:
       - backend
     depends_on:

@@ -1,0 +1,28 @@
+sources:
+  crm_logs:
+    type: "file"
+    include:
+      - "/var/log/mock_logs/crm_access.log"
+    read_from: "beginning"
+
+transforms:
+  parse_json:
+    type: "remap"
+    inputs:
+      - "crm_logs"
+    source: |
+      . = parse_json!(.message)
+
+sinks:
+  clickhouse_output:
+    type: "clickhouse"
+    inputs:
+      - "parse_json"
+    endpoint: "http://clickhouse:8123"
+    database: "audit_logs"
+    table: "activity_stream"
+    auth:
+      strategy: "basic"
+      user: "auditor"
+      password: "SecureCH_1787649352_Auth!"
+    skip_unknown_fields: true
