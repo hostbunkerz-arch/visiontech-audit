@@ -1,1 +1,18 @@
 secrets/*
+.env
+.env.*
+
+# Backups
+*.bak
+*.bak.*
+
+# Logs
+*.log
+logs/
+mock_logs/
+
+# Local overrides (не коммитим локальные конфиги)
+vector.toml
+
+# Скрипты симуляции/локальные утилиты (если не нужны в репо)
+simulate_crm.sh
