@@ -1,23 +1,50 @@
 sources:
-  crm_logs:
+  # Источник 1: Файл логов нашей 1С/CRM
+  crm_file_logs:
     type: "file"
     include:
       - "/var/log/mock_logs/crm_access.log"
     read_from: "beginning"
 
+  # Источник 2: Сетевой Syslog от роутера MikroTik (Слушаем порт 514 по UDP)
+  mikrotik_syslog:
+    type: "syslog"
+    address: "0.0.0.0:514"
+    mode: "udp"
+
 transforms:
-  parse_json:
+  # Парсим JSON из файла 1С
+  parse_crm_json:
     type: "remap"
     inputs:
-      - "crm_logs"
+      - "crm_file_logs"
     source: |
       . = parse_json!(.message)
+      .source_type = "CRM/1C"
+
+  # Парсим и стандартизируем сырой трафик от MikroTik
+  parse_mikrotik:
+    type: "remap"
+    inputs:
+      - "mikrotik_syslog"
+    source: |
+      # Если syslog-парсер Вектора не смог разобрать поля, берем сырое сообщение
+      msg_text = string(.message) ?? string(.) ?? "Служебный пакет трафика"
+      
+      .employee_name = "Сетевой Трафик (MikroTik)"
+      .event_type = "mikrotik_log"
+      .payload_size_mb = 1.0
+      .ai_verdict = msg_text
+      .risk_score_ai = to_int(0)
+      .source_type = "MikroTik"
 
 sinks:
+  # Отправляем ВСЁ в нашу единую таблицу ClickHouse
   clickhouse_output:
     type: "clickhouse"
     inputs:
-      - "parse_json"
+      - "parse_crm_json"
+      - "parse_mikrotik"
     endpoint: "http://clickhouse:8123"
     database: "audit_logs"
     table: "activity_stream"
